@@ -115,7 +115,8 @@ function generateSeededMidi(seed) {
 app.get('/api/generateSongData', async (req,res)=>{
     let {seed, songName, artist} = req.query
 
-    const url = `https://picsum.photos/seed/${seed}-${songName}-${artist}/300/300`
+    
+    const url = `https://picsum.photos/seed/${seed}-${encodeURIComponent(songName)}-${encodeURIComponent(artist)}/300/300`
     let input
     try{
         input = (await axios.get(url, { responseType: 'arraybuffer' })).data;
