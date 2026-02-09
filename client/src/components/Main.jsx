@@ -18,11 +18,12 @@ function Main() {
     const [seed, setSeed] = useState('')
     const [language, setLanguage] = useState('en')
     const [hasMore, setHasMore] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const pageSize = 25
     const maxPages = 25;
 
     const madSeed = (page)=>{
-        let newSeed = seed || 0n
+        let newSeed = seed ? BigInt(seed) : 0n
         const mult = 1103515245n
         const add = 12345n
         let combined = BigInt(newSeed) ^ BigInt(page)
@@ -30,20 +31,29 @@ function Main() {
         return combined.toString();
     }
 
-    const getSongs = (page, append = false)=>{
+    const getSongs = (page, append = false, signal = null)=>{
+        setIsLoading(true)
         const calculatedSeed = madSeed(page)
-        axiosInstance.get(`/api/generateSongPage?pageSize=${pageSize}&page=${page}&seed=${calculatedSeed}&language=${language}&likes=${likeValue}`)
+        axiosInstance.get(`/api/generateSongPage?pageSize=${pageSize}&page=${page}&seed=${calculatedSeed}&language=${language}&likes=${likeValue}`, {signal: signal})
             .then(res=>{
                 if (append) {
                     setSongs(prev => [...prev, ...res.data]);
                 } else {
                     setSongs(res.data);
                 }
+                setIsLoading(false)
             }).catch(err=>{
-                console.log(err);
+                if (err.name === 'CanceledError') {
+                    console.log(err);
+                    
+                    console.log('Request canceled');
+                } else {
+                    console.log(err)
+                }
             })
     }
     const getMoreSongs = () => {
+        if (isLoading) return
         const nextPage = currentPage + 1
         if (nextPage <= maxPages) {
             setCurrentPage(nextPage);
@@ -60,9 +70,12 @@ function Main() {
     }
 
     useEffect(()=>{
+        setSongs([])
+        const controller = new AbortController()
         setHasMore(true)
-        getSongs(1, false)
         setCurrentPage(1)
+        getSongs(1, false, controller.signal)
+        return () => { controller.abort() }
     }, [seed, language, activeView, likeValue])
     
     return ( <>
@@ -79,7 +92,7 @@ function Main() {
                             className='border border-dark' type="number" placeholder="Enter seed" 
                                 onChange={(e)=>{setSeed(e.target.value)}} />
                     </Form.Group>
-                    <Button onClick={()=>{setSeed(Math.floor(Math.random() * (99999999999999 - 0 + 1)) + 0)}}>Random</Button>
+                    <Button onClick={()=>{setSeed(Math.floor(Math.random() * (9999999999999 - 0 + 1)) + 0)}}>Random</Button>
                     <Form.Group className='d-flex align-items-center gap-1' style={{width:'300px'}}>
                         <Form.Range step={0.1} min={0} max={10} value={likeText} list='range-markers' id='range'
                             onChange={(e)=>{setLikeText(parseFloat(e.target.value).toFixed(1))}} 
