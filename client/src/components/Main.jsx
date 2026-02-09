@@ -44,8 +44,6 @@ function Main() {
                 setIsLoading(false)
             }).catch(err=>{
                 if (err.name === 'CanceledError') {
-                    console.log(err);
-                    
                     console.log('Request canceled');
                 } else {
                     console.log(err)
